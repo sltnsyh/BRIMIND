@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { Header } from "./components/Header";
-import { BottomNav } from "./components/BottomNav";
 import { Dashboard } from "./components/Dashboard";
 import { InputPipeline } from "./components/InputPipeline";
 import { CustomerList } from "./components/CustomerList";
 import { Settings } from "./components/Settings";
 import { NotificationPanel } from "./components/NotificationPanel";
 import { LeadsData } from "./components/LeadsData";
+import { Organizer } from "./components/Organizer";     // <-- NEW
+import { BottomNav } from "./components/BottomNav";      // <-- NAVIGATION
 import { Toaster } from "./components/ui/sonner";
 
 interface Notification {
@@ -17,9 +18,18 @@ interface Notification {
   type: "withdrawal" | "deposit";
 }
 
+function PesanPage() {
+  return (
+    <div className="text-center text-gray-600 py-10">
+      Belum ada pesan
+    </div>
+  );
+}
+
 export default function App() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [showNotifications, setShowNotifications] = useState(false);
+
   const [notifications, setNotifications] = useState<Notification[]>([
     {
       id: 1,
@@ -45,7 +55,6 @@ export default function App() {
   ]);
 
   const handleTransactionSubmit = (data: any) => {
-    // Check if it's a large withdrawal
     if (data.transactionType === "withdrawal" && data.amount >= 50000) {
       const newNotification: Notification = {
         id: Date.now(),
@@ -60,7 +69,6 @@ export default function App() {
 
   const handleFollowUpSubmit = (data: any) => {
     console.log("Follow-up submitted:", data);
-    // You can add additional logic here to store follow-up data
   };
 
   const handleClearNotifications = () => {
@@ -71,17 +79,45 @@ export default function App() {
   const renderContent = () => {
     switch (activeTab) {
       case "dashboard":
-        return <Dashboard notifications={notifications} />;
+        return (
+          <Dashboard
+            notifications={notifications}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+          />
+        );
+
       case "input":
-        return <InputPipeline onSubmit={handleTransactionSubmit} onFollowUpSubmit={handleFollowUpSubmit} />;
+        return (
+          <InputPipeline
+            onSubmit={handleTransactionSubmit}
+            onFollowUpSubmit={handleFollowUpSubmit}
+          />
+        );
+
       case "leads":
         return <LeadsData />;
+
       case "customers":
         return <CustomerList />;
+
+      case "organizer":
+        return <Organizer />;   // <-- REAL ORGANIZER PAGE
+
+      case "pesan":
+        return <PesanPage />;
+
       case "settings":
-        return <Settings />;
+        return <Settings />;  // <-- Akun
+
       default:
-        return <Dashboard notifications={notifications} />;
+        return (
+          <Dashboard
+            notifications={notifications}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+          />
+        );
     }
   };
 
@@ -91,13 +127,15 @@ export default function App() {
         onNotificationClick={() => setShowNotifications(true)}
         notificationCount={notifications.length}
       />
-      
+
       <main className="max-w-md mx-auto px-4 py-4">
         {renderContent()}
       </main>
 
+      {/* Bottom Navigation */}
       <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
 
+      {/* Notification Panel */}
       {showNotifications && (
         <NotificationPanel
           notifications={notifications}
