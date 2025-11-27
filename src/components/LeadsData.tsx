@@ -1,9 +1,18 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
-import { Search, Phone, Mail, Calendar, TrendingUp, Filter, Building2, Clock } from "lucide-react";
-import { useState } from "react";
+import {
+  Search,
+  Phone,
+  Mail,
+  Calendar,
+  TrendingUp,
+  Filter,
+  Building2,
+  Clock,
+} from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -11,6 +20,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
+
+import { FollowUpForm } from "./FollowUpForm";
 
 interface Lead {
   id: number;
@@ -125,6 +136,11 @@ export function LeadsData() {
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [leads] = useState<Lead[]>(initialLeads);
 
+  // ⭐ NEW TAB: REFERRAL / FOLLOW-UP
+  const [activeLeadTab, setActiveLeadTab] = useState<"referral" | "followup">(
+    "referral"
+  );
+
   const filteredLeads = leads.filter((lead) => {
     const matchesSearch =
       lead.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -172,203 +188,243 @@ export function LeadsData() {
     (sum, lead) => sum + lead.estimatedValue,
     0
   );
-  const newLeadsCount = filteredLeads.filter((lead) => lead.status === "new").length;
+  const newLeadsCount = filteredLeads.filter(
+    (lead) => lead.status === "new"
+  ).length;
+
   const urgentLeadsCount = filteredLeads.filter(
     (lead) => lead.urgency === "urgent"
   ).length;
 
   return (
     <div className="space-y-4">
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 gap-3">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600">Referral Diterima</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div>{filteredLeads.length}</div>
-            <div className="text-xs text-blue-600 flex items-center gap-1">
-              {newLeadsCount} baru
-            </div>
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600">Total Potensi</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div>
-              Rp{totalLeadValue.toLocaleString("id-ID", { maximumFractionDigits: 0 })}
-            </div>
-            <div className="text-xs text-red-600 flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              {urgentLeadsCount} mendesak
-            </div>
-          </CardContent>
-        </Card>
+      {/* ⭐ TOP TABS */}
+      <div className="grid grid-cols-2 gap-2">
+        <Button
+          onClick={() => setActiveLeadTab("referral")}
+          variant={activeLeadTab === "referral" ? "default" : "outline"}
+          className="py-3"
+        >
+          Referral
+        </Button>
+
+        <Button
+          onClick={() => setActiveLeadTab("followup")}
+          variant={activeLeadTab === "followup" ? "default" : "outline"}
+          className="py-3 flex items-center gap-1"
+        >
+          Tindak Lanjut
+        </Button>
       </div>
 
-      {/* Search and Filter */}
-      <Card>
-        <CardContent className="pt-4 space-y-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <Input
-              placeholder="Cari referral..."
-              className="pl-10"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-gray-500" />
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="flex-1">
-                <SelectValue placeholder="Filter berdasarkan status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Semua Status</SelectItem>
-                <SelectItem value="new">Baru</SelectItem>
-                <SelectItem value="contacted">Dihubungi</SelectItem>
-                <SelectItem value="in_progress">Dalam Proses</SelectItem>
-                <SelectItem value="converted">Berhasil</SelectItem>
-                <SelectItem value="declined">Ditolak</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Referrals List */}
-      <div className="space-y-3">
-        {filteredLeads.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center text-gray-500">
-              <p>Tidak ada referral ditemukan</p>
-              <p className="text-sm">Coba sesuaikan filter Anda</p>
-            </CardContent>
-          </Card>
-        ) : (
-          filteredLeads.map((lead) => (
-            <Card key={lead.id} className="overflow-hidden">
-              <CardContent className="pt-4">
-                {/* Lead Header */}
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span>{lead.customerName}</span>
-                      <Badge
-                        variant={getUrgencyColor(lead.urgency) as any}
-                        className="text-xs"
-                      >
-                        {lead.urgency}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center gap-1 text-sm text-gray-600">
-                      <Building2 className="w-3 h-3" />
-                      <span>dari {lead.fromBranch}</span>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm">
-                      Rp{lead.estimatedValue.toLocaleString("id-ID")}
-                    </div>
-                    <Badge
-                      className={`text-xs mt-1 ${getStatusColor(lead.status)}`}
-                      variant="outline"
-                    >
-                      {lead.status.replace("_", " ")}
-                    </Badge>
-                  </div>
-                </div>
-
-                {/* Product Interest */}
-                <div className="bg-blue-50 text-blue-700 px-3 py-2 rounded-lg mb-3 text-sm">
-                  <span>Interest: {lead.productInterest}</span>
-                  <span className="mx-2">•</span>
-                  <span>{lead.customerProfile}</span>
-                </div>
-
-                {/* Contact Info */}
-                <div className="space-y-2 mb-3 pb-3 border-b border-gray-100">
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Mail className="w-3 h-3" />
-                    <span className="truncate">{lead.email}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Phone className="w-3 h-3" />
-                    <span>{lead.phone}</span>
-                  </div>
-                </div>
-
-                {/* Notes */}
-                {lead.notes && (
-                  <div className="bg-gray-50 px-3 py-2 rounded-lg mb-3">
-                    <div className="text-xs text-gray-500 mb-1">Catatan:</div>
-                    <p className="text-sm text-gray-700">{lead.notes}</p>
-                  </div>
-                )}
-
-                {/* Additional Info */}
-                <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
-                  <span className="flex items-center gap-1">
-                    <Calendar className="w-3 h-3" />
-                    Diterima: {new Date(lead.receivedDate).toLocaleDateString("id-ID")}
-                  </span>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="grid grid-cols-2 gap-2">
-                  <Button variant="outline" size="sm">
-                    <Phone className="w-3 h-3 mr-1" />
-                    Hubungi
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    <Mail className="w-3 h-3 mr-1" />
-                    Email
-                  </Button>
+      {/* ⭐ REFERRAL LIST PAGE */}
+      {activeLeadTab === "referral" && (
+        <>
+          {/* Summary Cards */}
+          <div className="grid grid-cols-2 gap-3">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm text-gray-600">
+                  Referral Diterima
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div>{filteredLeads.length}</div>
+                <div className="text-xs text-blue-600 flex items-center gap-1">
+                  {newLeadsCount} baru
                 </div>
               </CardContent>
             </Card>
-          ))
-        )}
-      </div>
 
-      {/* Conversion Stats */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-green-600" />
-            Performa Referral
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-3 gap-3">
-          <div className="text-center">
-            <div className="text-2xl">
-              {leads.filter((l) => l.status === "converted").length}
-            </div>
-            <div className="text-xs text-gray-500">Berhasil</div>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm text-gray-600">
+                  Total Potensi
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div>
+                  Rp{totalLeadValue.toLocaleString("id-ID", {
+                    maximumFractionDigits: 0,
+                  })}
+                </div>
+                <div className="text-xs text-red-600 flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  {urgentLeadsCount} mendesak
+                </div>
+              </CardContent>
+            </Card>
           </div>
-          <div className="text-center">
-            <div className="text-2xl">
-              {(
-                (leads.filter((l) => l.status === "converted").length / leads.length) *
-                100
-              ).toFixed(0)}
-              %
-            </div>
-            <div className="text-xs text-gray-500">Tingkat Sukses</div>
+
+          {/* Search + Filter */}
+          <Card>
+            <CardContent className="pt-4 space-y-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input
+                  placeholder="Cari referral..."
+                  className="pl-10"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4 text-gray-500" />
+                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Filter berdasarkan status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Semua Status</SelectItem>
+                    <SelectItem value="new">Baru</SelectItem>
+                    <SelectItem value="contacted">Dihubungi</SelectItem>
+                    <SelectItem value="in_progress">Dalam Proses</SelectItem>
+                    <SelectItem value="converted">Berhasil</SelectItem>
+                    <SelectItem value="declined">Ditolak</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Leads Listing */}
+          <div className="space-y-3">
+            {filteredLeads.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center text-gray-500">
+                  <p>Tidak ada referral ditemukan</p>
+                  <p className="text-sm">Coba sesuaikan filter Anda</p>
+                </CardContent>
+              </Card>
+            ) : (
+              filteredLeads.map((lead) => (
+                <Card key={lead.id} className="overflow-hidden">
+                  <CardContent className="pt-4">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span>{lead.customerName}</span>
+                          <Badge
+                            variant={getUrgencyColor(lead.urgency) as any}
+                            className="text-xs"
+                          >
+                            {lead.urgency}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-1 text-sm text-gray-600">
+                          <Building2 className="w-3 h-3" />
+                          <span>dari {lead.fromBranch}</span>
+                        </div>
+                      </div>
+
+                      <div className="text-right">
+                        <div className="text-sm">
+                          Rp{lead.estimatedValue.toLocaleString("id-ID")}
+                        </div>
+                        <Badge
+                          className={`text-xs mt-1 ${getStatusColor(
+                            lead.status
+                          )}`}
+                          variant="outline"
+                        >
+                          {lead.status.replace("_", " ")}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    <div className="bg-blue-50 text-blue-700 px-3 py-2 rounded-lg mb-3 text-sm">
+                      <span>Interest: {lead.productInterest}</span>
+                      <span className="mx-2">•</span>
+                      <span>{lead.customerProfile}</span>
+                    </div>
+
+                    <div className="space-y-2 mb-3 pb-3 border-b border-gray-100">
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <Mail className="w-3 h-3" />
+                        <span className="truncate">{lead.email}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <Phone className="w-3 h-3" />
+                        <span>{lead.phone}</span>
+                      </div>
+                    </div>
+
+                    {lead.notes && (
+                      <div className="bg-gray-50 px-3 py-2 rounded-lg mb-3">
+                        <div className="text-xs text-gray-500 mb-1">Catatan:</div>
+                        <p className="text-sm text-gray-700">{lead.notes}</p>
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
+                      <span className="flex items-center gap-1">
+                        <Calendar className="w-3 h-3" />
+                        Diterima:{" "}
+                        {new Date(lead.receivedDate).toLocaleDateString("id-ID")}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button variant="outline" size="sm">
+                        <Phone className="w-3 h-3 mr-1" />
+                        Hubungi
+                      </Button>
+                      <Button variant="outline" size="sm">
+                        <Mail className="w-3 h-3 mr-1" />
+                        Email
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </div>
-          <div className="text-center">
-            <div className="text-2xl">
-              {leads.filter((l) => l.status === "in_progress").length}
-            </div>
-            <div className="text-xs text-gray-500">Dalam Proses</div>
-          </div>
-        </CardContent>
-      </Card>
+
+          {/* Conversion Performance */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-green-600" />
+                Performa Referral
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-3 gap-3">
+              <div className="text-center">
+                <div className="text-2xl">
+                  {leads.filter((l) => l.status === "converted").length}
+                </div>
+                <div className="text-xs text-gray-500">Berhasil</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl">
+                  {(
+                    (leads.filter((l) => l.status === "converted").length /
+                      leads.length) *
+                    100
+                  ).toFixed(0)}
+                  %
+                </div>
+                <div className="text-xs text-gray-500">Tingkat Sukses</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl">
+                  {leads.filter((l) => l.status === "in_progress").length}
+                </div>
+                <div className="text-xs text-gray-500">Dalam Proses</div>
+              </div>
+            </CardContent>
+          </Card>
+        </>
+      )}
+
+      {/* ⭐ FOLLOW UP FORM TAB */}
+      {activeLeadTab === "followup" && (
+        <FollowUpForm
+          onSubmit={(data: any) => console.log("Follow Up Submitted:", data)}
+        />
+      )}
     </div>
   );
 }

@@ -35,12 +35,8 @@ interface DashboardProps {
 export function Dashboard({ notifications, activeTab, onTabChange }: DashboardProps) {
   const [creditTab, setCreditTab] = useState<"penarikan" | "realisasi">("penarikan");
 
-  const stats = [
-    { title: "Total Nilai Portofolio", value: "Rp 2.847.392.322", change: "+12.5%", trend: "up", icon: CircleDollarSign },
-    { title: "Nasabah Aktif", value: "247", change: "+8", trend: "up", icon: Users },
-    { title: "Penarikan Besar", value: "12", change: "Hari Ini", trend: "warning", icon: AlertTriangle },
-    { title: "Pertumbuhan Bulanan", value: "+8.4%", change: "vs bulan lalu", trend: "up", icon: TrendingUp },
-  ];
+  // unified selected item: { kind, id } or null
+  const [selected, setSelected] = useState<{ kind: "penarikan" | "realisasi"; id: number } | null>(null);
 
   return (
     <div className="space-y-4">
@@ -106,34 +102,6 @@ export function Dashboard({ notifications, activeTab, onTabChange }: DashboardPr
         </div>
       </Card>
 
-      {/* Internal Navigation */}
-      {/* <div className="grid grid-cols-2 gap-3">
-        {[
-          { id: "input", label: "Input", icon: FileInput },
-          { id: "leads", label: "Leads", icon: Briefcase },
-          { id: "customers", label: "Customer", icon: Users },
-          { id: "settings", label: "Akun", icon: SettingsIcon },
-        ].map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-
-          return (
-            <button
-              key={tab.id}
-              onClick={() => onTabChange(tab.id)}
-              className={`flex flex-col items-center justify-center gap-2 py-4 rounded-xl border transition ${
-                isActive
-                  ? "border-blue-500 bg-blue-50 text-blue-600"
-                  : "border-gray-200 bg-white text-gray-600"
-              }`}
-            >
-              <Icon className="w-6 h-6" />
-              <span className="text-sm font-medium">{tab.label}</span>
-            </button>
-          );
-        })}
-      </div> */}
-
       {/* Penarikan vs Realisasi Tabs */}
       <Card>
         <CardHeader>
@@ -144,7 +112,10 @@ export function Dashboard({ notifications, activeTab, onTabChange }: DashboardPr
             ].map((t) => (
               <button
                 key={t.id}
-                onClick={() => setCreditTab(t.id as any)}
+                onClick={() => {
+                  setCreditTab(t.id as any);
+                  setSelected(null);
+                }}
                 className="flex-1 py-2 text-sm font-medium rounded-lg transition"
                 style={{
                   backgroundColor: creditTab === t.id ? "#4fa3ff" : "#e5e7eb",
@@ -157,62 +128,112 @@ export function Dashboard({ notifications, activeTab, onTabChange }: DashboardPr
           </div>
         </CardHeader>
 
-        <CardContent className="space-y-3">
-          {/* Penarikan */}
-          {creditTab === "penarikan" && (
-            notifications.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">
-                Tidak ada penarikan besar hari ini
-              </p>
+        {/* Wrap content in a relative container so absolute popups can position inside */}
+        <CardContent className="space-y-3 relative">
+
+          {/* click-out overlay: covers viewport when popup open to allow outside click to close */}
+          {selected && (
+            <div
+              className="fixed inset-0 z-40"
+              onClick={() => setSelected(null)}
+            />
+          )}
+
+          {/* Penarikan list */}
+          {creditTab === "penarikan" &&
+            (notifications.length === 0 ? (
+              <p className="text-gray-500 text-center py-4">Tidak ada penarikan besar hari ini</p>
             ) : (
               notifications.slice(0, 5).map((n) => (
+                // Each item is relatively positioned to anchor the absolute popup
+                <div key={n.id} className="relative">
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelected((prev) => (prev && prev.kind === "penarikan" && prev.id === n.id ? null : { kind: "penarikan", id: n.id }));
+                    }}
+                    className="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-100 cursor-pointer"
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4 text-red-600" />
+                        <span className="text-black">{n.customerName}</span>
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">{n.timestamp}</div>
+                    </div>
+
+                    <div className="text-red-600 font-medium">
+                      -Rp {n.amount.toLocaleString("id-ID")}
+                    </div>
+                  </div>
+
+                  {/* absolutely positioned small action button under the item (no layout shift) */}
+                  {selected && selected.kind === "penarikan" && selected.id === n.id && (
+                    <div
+                      className="absolute left-4 top-full mt-2 z-50"
+                      // stopPropagation to avoid parent click toggling selection
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <button
+                        onClick={() => {
+                          console.log("Added to agenda:", n);
+                          // TODO: integrate with real agenda logic if needed
+                          setSelected(null);
+                        }}
+                        className="w-fit text-white text-xs px-3 py-1 rounded-md shadow-lg border border-white/10"
+                        style={{ backgroundColor: "#4fa3ff" }}
+                      >
+                        Tambah ke Agenda
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))
+            ))}
+
+          {/* Realisasi list */}
+          {creditTab === "realisasi" &&
+            [1, 2, 3].map((i) => (
+              <div key={i} className="relative">
                 <div
-                  key={n.id}
-                  className="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-100"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelected((prev) => (prev && prev.kind === "realisasi" && prev.id === i ? null : { kind: "realisasi", id: i }));
+                  }}
+                  className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-100 cursor-pointer"
                 >
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <AlertTriangle className="w-4 h-4 text-red-600" />
-                      <span>{n.customerName}</span>
+                      <CircleDollarSign className="w-4 h-4 text-green-600" />
+                      <span className="text-black">Nasabah #{i}</span>
                     </div>
-
-                    <div className="text-xs text-gray-500 mt-1">
-                      {n.timestamp}
-                    </div>
+                    <div className="text-xs text-gray-500 mt-1">Baru realisasi kredit</div>
                   </div>
 
-                  <div className="text-red-600 font-medium">
-                    -Rp {n.amount.toLocaleString("id-ID")}
-                  </div>
-                </div>
-              ))
-            )
-          )}
-
-          {/* Realisasi */}
-          {creditTab === "realisasi" && (
-            [1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-100"
-              >
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <CircleDollarSign className="w-4 h-4 text-green-600" />
-                    <span>Nasabah #{i}</span>
-                  </div>
-
-                  <div className="text-xs text-gray-500 mt-1">
-                    Baru realisasi kredit
+                  <div className="text-green-700 font-medium">
+                    Rp {(i * 50000000).toLocaleString("id-ID")}
                   </div>
                 </div>
 
-                <div className="text-green-700 font-medium">
-                  Rp {(i * 50000000).toLocaleString("id-ID")}
-                </div>
+                {selected && selected.kind === "realisasi" && selected.id === i && (
+                  <div
+                    className="absolute left-4 top-full mt-2 z-50"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <button
+                      onClick={() => {
+                        console.log("Added to agenda: Nasabah #" + i);
+                        setSelected(null);
+                      }}
+                      className="w-fit text-white text-xs px-3 py-1 rounded-md shadow-lg border border-white/10"
+                      style={{ backgroundColor: "#4fa3ff" }}
+                    >
+                      Tambah ke Agenda
+                    </button>
+                  </div>
+                )}
               </div>
-            ))
-          )}
+            ))}
         </CardContent>
       </Card>
 
@@ -231,7 +252,6 @@ export function Dashboard({ notifications, activeTab, onTabChange }: DashboardPr
           </div>
         </CardContent>
       </Card>
-
     </div>
   );
 }

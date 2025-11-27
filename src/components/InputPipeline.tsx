@@ -99,14 +99,14 @@ export function InputPipeline({ onSubmit, onFollowUpSubmit }: InputPipelineProps
               <Send className="w-5 h-5" />
               <span>Kirim Referral</span>
             </Button>
-            <Button
+            {/* <Button
               variant={activeForm === "followup" ? "default" : "outline"}
               onClick={() => setActiveForm("followup")}
               className="flex flex-col items-center gap-1 h-auto py-3"
             >
               <UserCheck className="w-5 h-5" />
               <span>Tindak Lanjut</span>
-            </Button>
+            </Button> */}
           </div>
         </CardContent>
       </Card>
